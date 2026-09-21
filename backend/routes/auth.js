@@ -56,7 +56,7 @@ function createAuthRouter({ usersFile, readJSON, writeJSON, authenticateToken, S
     res.json({ token, username: user.username, role: user.role });
   });
 
-  router.get('/me', authenticateToken, (req, res) => {
+  router.get('/me', authRateLimit, authenticateToken, (req, res) => {
     const normalized = normalizeUsers(readJSON(usersFile));
     if (normalized.changed) writeJSON(usersFile, normalized.users);
     const user = normalized.users.find(candidate => candidate.username === req.user.username);
