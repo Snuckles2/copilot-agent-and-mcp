@@ -1,4 +1,5 @@
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const jwt = require('jsonwebtoken');
 
 const USER_ROLES = ['member', 'administrator'];
@@ -20,8 +21,14 @@ function normalizeUsers(users) {
 
 function createAuthRouter({ usersFile, readJSON, writeJSON, authenticateToken, SECRET_KEY }) {
   const router = express.Router();
+  const authRateLimit = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
 
-  router.post('/register', (req, res) => {
+  router.post('/register', authRateLimit, (req, res) => {
     const { username, password, role } = req.body;
     if (!username || !password) return res.status(400).json({ message: 'Username and password required' });
     if (role !== undefined && !USER_ROLES.includes(role)) {
@@ -38,7 +45,7 @@ function createAuthRouter({ usersFile, readJSON, writeJSON, authenticateToken, S
     res.status(201).json({ message: 'User registered' });
   });
 
-  router.post('/login', (req, res) => {
+  router.post('/login', authRateLimit, (req, res) => {
     const { username, password } = req.body;
     const normalized = normalizeUsers(readJSON(usersFile));
     const users = normalized.users;
