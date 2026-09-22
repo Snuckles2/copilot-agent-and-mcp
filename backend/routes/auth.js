@@ -1,6 +1,9 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 
+const USER_ROLES = ['member', 'administrator'];
+const DEFAULT_ROLE = 'member';
+
 function createAuthRouter({ usersFile, readJSON, writeJSON, SECRET_KEY }) {
   const router = express.Router();
 
@@ -11,7 +14,7 @@ function createAuthRouter({ usersFile, readJSON, writeJSON, SECRET_KEY }) {
     if (users.find(u => u.username === username)) {
       return res.status(409).json({ message: 'User already exists' });
     }
-    users.push({ username, password, favorites: [] });
+    users.push({ username, password, role: DEFAULT_ROLE, favorites: [] });
     writeJSON(usersFile, users);
     res.status(201).json({ message: 'User registered' });
   });
@@ -21,8 +24,9 @@ function createAuthRouter({ usersFile, readJSON, writeJSON, SECRET_KEY }) {
     const users = readJSON(usersFile);
     const user = users.find(u => u.username === username && u.password === password);
     if (!user) return res.status(401).json({ message: 'Invalid credentials' });
-    const token = jwt.sign({ username }, SECRET_KEY, { expiresIn: '1h' });
-    res.json({ token });
+    const role = USER_ROLES.includes(user.role) ? user.role : DEFAULT_ROLE;
+    const token = jwt.sign({ username, role }, SECRET_KEY, { expiresIn: '1h' });
+    res.json({ token, username: user.username, role });
   });
 
   return router;
